@@ -1,0 +1,8 @@
+# Ignorar pastas do Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build e publicações
+bin/
+obj/
