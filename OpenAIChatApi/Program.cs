@@ -7,7 +7,11 @@ using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuração de CORS
+// ðŸ”¥ ConfiguraÃ§Ã£o de porta via Kestrel (boa prÃ¡tica)
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+builder.WebHost.UseUrls($"http://*:{port}");
+
+// Configuraï¿½ï¿½o de CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -25,11 +29,11 @@ var openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY"); // Chave d
 
 if (string.IsNullOrEmpty(geminiApiKey))
 {
-    throw new InvalidOperationException("A chave da API Gemini não foi configurada. Verifique a variável de ambiente 'GEMINI_API_KEY'.");
+    throw new InvalidOperationException("A chave da API Gemini nï¿½o foi configurada. Verifique a variï¿½vel de ambiente 'GEMINI_API_KEY'.");
 }
 if (string.IsNullOrEmpty(openAiKey))
 {
-    throw new InvalidOperationException("A chave da API OpenAI não foi configurada. Verifique a variável de ambiente 'OPENAI_API_KEY'.");
+    throw new InvalidOperationException("A chave da API OpenAI nï¿½o foi configurada. Verifique a variï¿½vel de ambiente 'OPENAI_API_KEY'.");
 }
 
 // Cliente HTTP
@@ -40,8 +44,6 @@ clientOpenIA.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue
 // Lista de personas
 string[] personas = ["adesao", "icatuSign", "sicred", "equilibrio", "persona"];
 
-// Habilitar CORS
-app.UseCors("AllowAll");
 
 // Criar um endpoint para cada persona
 foreach (var persona in personas)
@@ -50,11 +52,11 @@ foreach (var persona in personas)
     {
         try
         {
-            // Validar o corpo da requisição
+            // Validar o corpo da requisiï¿½ï¿½o
             var body = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(request.Body);
             if (body == null || !body.ContainsKey("message"))
             {
-                return Results.BadRequest(new { error = "O corpo da requisição deve conter a chave 'message'." });
+                return Results.BadRequest(new { error = "O corpo da requisiï¿½ï¿½o deve conter a chave 'message'." });
             }
 
             var userMessage = body["message"];
@@ -64,7 +66,7 @@ foreach (var persona in personas)
             var personaPath = Path.Combine("Personas", $"{persona}.txt");
             if (!File.Exists(personaPath))
             {
-                return Results.NotFound(new { error = $"O arquivo de persona '{persona}.txt' não foi encontrado." });
+                return Results.NotFound(new { error = $"O arquivo de persona '{persona}.txt' nï¿½o foi encontrado." });
             }
 
             var systemPrompt = await File.ReadAllTextAsync(personaPath, Encoding.UTF8);
@@ -89,7 +91,7 @@ foreach (var persona in personas)
                         contentType: "application/json; charset=utf-8"
                     );
                 case "audio":
-                    // Parâmetros opcionais para o áudio
+                    // Parï¿½metros opcionais para o ï¿½udio
                     var model = body.ContainsKey("model") ? body["model"] : "gpt-4o-mini-tts";
                     var voice = body.ContainsKey("voice") ? body["voice"] : "shimmer"; //nova
                     var instructions = body.ContainsKey("instructions") ? body["instructions"] : "Speak in a cheerful and positive tone.";
@@ -98,10 +100,10 @@ foreach (var persona in personas)
                     // Primeiro, obtenha a resposta textual do modelo
                     var textResponse = await CallOpenIAAsync(clientOpenIA, systemPrompt, userMessage, openAiKey);
 
-                    // Depois, gere o áudio a partir da resposta textual
+                    // Depois, gere o ï¿½udio a partir da resposta textual
                     var audioBytes = await CallOpenAIAudioAsync(clientOpenIA, textResponse, model, voice, instructions, responseFormat);
 
-                    // Retorne ambos: texto e áudio (como base64)
+                    // Retorne ambos: texto e ï¿½udio (como base64)
                     return Results.Json(
                         new { response = textResponse, audio = Convert.ToBase64String(audioBytes) },
                         new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping },
@@ -109,7 +111,7 @@ foreach (var persona in personas)
                     );
 
                 default:
-                    return Results.BadRequest(new { error = "O valor de 'llm' não é válido." });
+                    return Results.BadRequest(new { error = "O valor de 'llm' nï¿½o ï¿½ vï¿½lido." });
             }
         }
         catch (Exception ex)
@@ -123,8 +125,9 @@ foreach (var persona in personas)
     });
 }
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
-app.Run($"http://0.0.0.0:{port}");
+// Habilitar CORS
+app.UseCors("AllowAll");
+app.Run();
 
 
 //LLM GEMINI
@@ -184,7 +187,7 @@ async Task<string> CallOpenIAAsync(HttpClient client, string systemPrompt, strin
                 }
     };
 
-    // Enviar a requisição para a API OpenAI
+    // Enviar a requisiï¿½ï¿½o para a API OpenAI
     var response = await client.PostAsync(
         "https://api.openai.com/v1/chat/completions",
         new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
@@ -231,6 +234,6 @@ async Task<byte[]> CallOpenAIAudioAsync(HttpClient client, string input, string 
         throw new Exception($"Erro ao se comunicar com a API OpenAI Audio: {errorContent}");
     }
 
-    // Retorna o áudio como array de bytes
+    // Retorna o ï¿½udio como array de bytes
     return await response.Content.ReadAsByteArrayAsync();
 }
