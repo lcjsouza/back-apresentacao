@@ -18,6 +18,7 @@ EXPOSE 5000
 
 # Copia o app publicado da etapa de build
 COPY --from=build /app/out .
+COPY ./Personas ./Personas
 
 # Comando de inicialização
 ENTRYPOINT ["dotnet", "OpenAIChatApi.dll"]
