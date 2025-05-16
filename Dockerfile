@@ -2,23 +2,24 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-# Copia arquivos e restaura dependências
+# Copia tudo (incluindo subpastas)
 COPY . ./
-RUN dotnet publish -c Release -o out
+
+# Publica o projeto principal
+RUN dotnet publish OpenAIChatApi/OpenAIChatApi.csproj -c Release -o out
 
 # Etapa 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
-# Define a variável de ambiente da porta
 ENV PORT=5000
-
-# Expõe a porta que a app vai escutar
 EXPOSE 5000
 
-# Copia o app publicado da etapa de build
-COPY --from=build /app/out .
-COPY ./Personas ./Personas
+# Copia o app publicado
+COPY --from=build /app/out ./
 
-# Comando de inicialização
+# Copia a pasta Personas da subpasta OpenAIChatApi
+COPY OpenAIChatApi/Personas ./Personas
+
+# Start
 ENTRYPOINT ["dotnet", "OpenAIChatApi.dll"]
